@@ -71,6 +71,8 @@ var logsCmd = &cobra.Command{
 					RespStatus *int   `json:"resp_status"`
 					DurationMs *int64  `json:"duration_ms"`
 					StepName   string  `json:"step_name"`
+					PipelineID string  `json:"pipeline_id"`
+					TraceID    string  `json:"trace_id"`
 					ReqBody    *string `json:"req_body"`
 					RespBody   *string `json:"resp_body"`
 					CreatedAt  string  `json:"created_at"`
@@ -114,8 +116,16 @@ var logsCmd = &cobra.Command{
 				if r.StepName != "" {
 					step = color.New(color.FgCyan).Sprintf(" [%s]", r.StepName)
 				}
+				trace := ""
+				if r.PipelineID != "" {
+					trace = color.New(color.FgMagenta).Sprintf(" (%s", r.PipelineID)
+					if r.TraceID != "" {
+						trace += color.New(color.Faint).Sprintf(":%s", r.TraceID)
+					}
+					trace += color.New(color.FgMagenta).Sprint(")")
+				}
 
-				fmt.Printf("  %s %s %s → %s %s%s\n", ts, method, r.Path, status, dur, step)
+				fmt.Printf("  %s %s %s → %s %s%s%s\n", ts, method, r.Path, status, dur, step, trace)
 
 				if showBody {
 					if r.ReqBody != nil && *r.ReqBody != "" {

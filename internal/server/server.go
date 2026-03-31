@@ -153,6 +153,7 @@ func (s *Server) Run() error {
 	// API
 	mux.HandleFunc("GET /api/tunnels/{subdomain}/requests", s.handleRequestList)
 	mux.HandleFunc("GET /api/tunnels/{subdomain}/requests/{id}", s.handleRequestGet)
+	mux.HandleFunc("GET /api/requests/{id}", s.handleRequestGetGlobal) // lookup by ID across all tunnels
 	mux.HandleFunc("POST /api/tunnels/{subdomain}/requests/{id}/replay", s.handleReplay)
 	mux.HandleFunc("GET /api/tunnels/{subdomain}/status", s.handleTunnelStatus)
 
@@ -313,12 +314,22 @@ func (s *Server) subdomainRouter(fallback http.Handler) http.Handler {
 			s.handleWebSocketProxy(w, r, sub)
 			return
 		}
+		// SSE/streaming requests → also proxy as raw TCP (prevents buffering)
+		if isSSERequest(r) {
+			s.handleWebSocketProxy(w, r, sub) // reuses same hijack+yamux path
+			return
+		}
 		s.handleWebhook(w, r, sub)
 	})
 }
 
 func isWebSocketUpgrade(r *http.Request) bool {
 	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+}
+
+func isSSERequest(r *http.Request) bool {
+	accept := r.Header.Get("Accept")
+	return strings.Contains(accept, "text/event-stream")
 }
 
 func (s *Server) extractSubdomain(host string) string {

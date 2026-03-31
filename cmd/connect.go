@@ -29,7 +29,13 @@ Uses saved config from 'pie login' — or override with flags.
   pie connect --server host:9443 --key abc... 3000
 
   # TCP tunnel:
-  pie connect --tcp 5432`,
+  pie connect --tcp 5432
+
+  # AI tool presets:
+  pie connect --ollama       # Ollama (port 11434, auth enabled)
+  pie connect --comfyui      # ComfyUI (port 8188)
+  pie connect --n8n          # n8n (port 5678)
+  pie connect --tma          # Telegram Mini App (port 5173)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, _ := config.LoadClient()
 		active := cfg.ActiveAccount()
@@ -47,6 +53,26 @@ Uses saved config from 'pie login' — or override with flags.
 		subdomain := resolveFlag(cmd, "name", savedSub, "")
 		forward := resolveFlag(cmd, "forward", "", "http://localhost:3000")
 		tcpForward := mustStr(cmd, "tcp")
+		auth := mustStr(cmd, "auth")
+
+		// Presets for common AI tools
+		if b, _ := cmd.Flags().GetBool("ollama"); b {
+			forward = "http://localhost:11434"
+			if subdomain == "" { subdomain = "ollama" }
+			if auth == "" { auth = "ollama" } // default auth for security
+		}
+		if b, _ := cmd.Flags().GetBool("comfyui"); b {
+			forward = "http://localhost:8188"
+			if subdomain == "" { subdomain = "comfyui" }
+		}
+		if b, _ := cmd.Flags().GetBool("n8n"); b {
+			forward = "http://localhost:5678"
+			if subdomain == "" { subdomain = "n8n" }
+		}
+		if b, _ := cmd.Flags().GetBool("tma"); b {
+			forward = "http://localhost:5173"
+			if subdomain == "" { subdomain = "tma" }
+		}
 
 		// Validate key
 		if keyHex == "" {
@@ -109,7 +135,7 @@ Uses saved config from 'pie login' — or override with flags.
 			config.SaveClient(cfg)
 		}
 
-		auth := mustStr(cmd, "auth")
+		
 
 		clientCfg := client.Config{
 			ServerAddr:   server,
@@ -181,6 +207,12 @@ func init() {
 	connectCmd.Flags().String("forward", "", "Local HTTP target")
 	connectCmd.Flags().String("tcp", "", "Local TCP target (e.g. 5432)")
 	connectCmd.Flags().String("auth", "", "Password to protect public URL")
+
+	// AI tool presets
+	connectCmd.Flags().Bool("ollama", false, "Ollama preset (port 11434, auth enabled)")
+	connectCmd.Flags().Bool("comfyui", false, "ComfyUI preset (port 8188)")
+	connectCmd.Flags().Bool("n8n", false, "n8n preset (port 5678)")
+	connectCmd.Flags().Bool("tma", false, "Telegram Mini App preset (port 5173)")
 
 	rootCmd.AddCommand(connectCmd)
 }

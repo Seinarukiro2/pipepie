@@ -27,6 +27,9 @@ var rootCmd = &cobra.Command{
     pie account            Show & switch server accounts
     pie status             Show tunnels and activity
     pie logs <tunnel>      Stream recent requests
+    pie inspect <id>       Inspect request details
+    pie replay <id>        Replay a webhook
+    pie traces <tunnel>    Show pipeline traces
     pie up                 Multi-tunnel from pipepie.yaml
     pie logout             Remove a server account`,
 }

@@ -6,6 +6,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -44,12 +45,49 @@ func DetectProvider(headers http.Header, body []byte, path string) *ProviderMatc
 		return m
 	}
 
+	// MCP JSON-RPC detection
+	if m := detectMCP(headers, body); m != nil {
+		return m
+	}
+
 	// Path-based fallback for common patterns
 	if m := detectByPath(path, body); m != nil {
 		return m
 	}
 
 	return nil
+}
+
+// ── MCP (Model Context Protocol) ─────────────────────────────────────
+// JSON-RPC 2.0: {"jsonrpc":"2.0","method":"tools/call","params":{...},"id":1}
+
+func detectMCP(headers http.Header, body []byte) *ProviderMatch {
+	var rpc struct {
+		JSONRPC string `json:"jsonrpc"`
+		Method  string `json:"method"`
+		ID      any    `json:"id"`
+		Params  struct {
+			Name string `json:"name"`
+		} `json:"params"`
+	}
+	if err := json.Unmarshal(body, &rpc); err != nil || rpc.JSONRPC != "2.0" {
+		return nil
+	}
+	if rpc.Method == "" {
+		return nil
+	}
+
+	stepName := "mcp:" + rpc.Method
+	if rpc.Params.Name != "" {
+		stepName = "mcp:" + rpc.Method + ":" + rpc.Params.Name
+	}
+
+	return &ProviderMatch{
+		Provider: "mcp",
+		JobID:    fmt.Sprintf("%v", rpc.ID),
+		Status:   "received",
+		StepName: stepName,
+	}
 }
 
 // ── Replicate ────────────────────────────────────────────────────────

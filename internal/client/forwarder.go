@@ -13,16 +13,23 @@ import (
 
 // Forwarder forwards webhook requests to the local target.
 type Forwarder struct {
-	target string
-	http   *http.Client
+	target     string
+	http       *http.Client
+	streamHttp *http.Client // no timeout for SSE/streaming
 }
 
 // NewForwarder creates a forwarder targeting the given URL.
 func NewForwarder(target string) *Forwarder {
 	return &Forwarder{
-		target: strings.TrimRight(target, "/"),
-		http:   &http.Client{Timeout: 30 * time.Second},
+		target:     strings.TrimRight(target, "/"),
+		http:       &http.Client{Timeout: 30 * time.Second},
+		streamHttp: &http.Client{Timeout: 0}, // no timeout for streams
 	}
+}
+
+func isStreamingRequest(headers map[string]string) bool {
+	accept := strings.ToLower(headers["Accept"])
+	return strings.Contains(accept, "text/event-stream") || strings.Contains(accept, "application/x-ndjson")
 }
 
 // Forward sends a protobuf request to the local target and returns the response.
@@ -53,7 +60,13 @@ func (f *Forwarder) Forward(req *pb.HttpRequest, body []byte) (*pb.HttpResponse,
 		httpReq.Header.Set("X-Pipepie-Replay-Of", req.ReplayOf)
 	}
 
-	resp, err := f.http.Do(httpReq)
+	// Use a client without timeout for SSE/streaming responses
+	httpClient := f.http
+	if isStreamingRequest(req.Headers) {
+		httpClient = f.streamHttp
+	}
+
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		// Local server not running — return friendly error page
 		return &pb.HttpResponse{
@@ -67,8 +80,17 @@ func (f *Forwarder) Forward(req *pb.HttpRequest, body []byte) (*pb.HttpResponse,
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
-	if err != nil {
+	// Check if response is SSE/streaming — read with a reasonable limit
+	// but don't hang forever on streams
+	maxBody := int64(10 << 20) // 10MB
+	ct := resp.Header.Get("Content-Type")
+	if strings.Contains(ct, "text/event-stream") || strings.Contains(ct, "application/x-ndjson") {
+		// For SSE: read available data with timeout, don't wait for EOF
+		maxBody = 1 << 20 // 1MB for streaming responses
+	}
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 

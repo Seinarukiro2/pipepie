@@ -131,6 +131,16 @@ func (s *Server) handleRequestGet(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, req)
 }
 
+func (s *Server) handleRequestGetGlobal(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	req, err := s.store.RequestGet(id)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		return
+	}
+	writeJSON(w, http.StatusOK, req)
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request) {
 	subdomain := r.PathValue("subdomain")
 	id := r.PathValue("id")

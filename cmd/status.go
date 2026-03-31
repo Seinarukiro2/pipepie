@@ -22,6 +22,7 @@ var statusCmd = &cobra.Command{
 		cfg, _ := config.LoadClient()
 		active := cfg.ActiveAccount()
 		serverHTTP := resolveHTTPAddrFromAccount(cmd, active)
+		jsonOut, _ := cmd.Flags().GetBool("json")
 
 		bold := color.New(color.Bold)
 		green := color.New(color.FgGreen, color.Bold)
@@ -62,6 +63,11 @@ var statusCmd = &cobra.Command{
 		body, _ := io.ReadAll(resp.Body)
 		if err := json.Unmarshal(body, &data); err != nil {
 			return fmt.Errorf("parse response: %w", err)
+		}
+
+		if jsonOut {
+			fmt.Println(string(body))
+			return nil
 		}
 
 		// Header
@@ -161,6 +167,7 @@ func formatAgo(iso string) string {
 }
 
 func init() {
-	statusCmd.Flags().String("server", "", "HTTP API address (default: http://localhost:8080)")
+	statusCmd.Flags().String("server", "", "HTTP API address")
+	statusCmd.Flags().Bool("json", false, "Output as JSON")
 	rootCmd.AddCommand(statusCmd)
 }

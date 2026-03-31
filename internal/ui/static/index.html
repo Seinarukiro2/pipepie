@@ -71,6 +71,7 @@ a{color:var(--cyan);text-decoration:none}a:hover{color:var(--fg)}
 .step-runpod{background:rgba(189,147,249,.1);color:var(--purple)}
 .step-openai{background:rgba(241,250,140,.1);color:var(--yellow)}
 .step-modal{background:rgba(255,121,198,.1);color:var(--pink)}
+.step-mcp{background:rgba(139,233,253,.15);color:var(--cyan);border:1px solid rgba(139,233,253,.2)}
 
 /* Trace (Jaeger-style) */
 .tr-card{background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin:0 18px 10px;overflow:hidden;animation:fadeIn .2s ease}
@@ -275,7 +276,7 @@ function J(s){try{return JSON.parse(s||'{}')}catch{return{}}}
 function D(d){if(!d)return null;if(typeof d==='string')return d;try{return atob(d)}catch{return String(d)}}
 function F(s){if(!s)return'';try{return JSON.stringify(JSON.parse(s),null,2)}catch{return s}}
 function fS(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'K';return(b/1048576).toFixed(1)+'M'}
-function stepCls(s){if(!s)return'';const l=s.toLowerCase();for(const p of['replicate','fal','runpod','openai','modal']){if(l.includes(p))return'step-'+p}return''}
+function stepCls(s){if(!s)return'';const l=s.toLowerCase();for(const p of['replicate','fal','runpod','openai','modal','mcp']){if(l.includes(p))return'step-'+p}return''}
 
 render(html`<${App}/>`,document.getElementById('app'));
 </script>
