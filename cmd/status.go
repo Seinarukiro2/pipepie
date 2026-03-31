@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -119,7 +120,25 @@ func resolveHTTPAddrFromAccount(cmd *cobra.Command, acc *config.Account) string 
 	if serverFlag != "" {
 		return serverFlag
 	}
-	// Default to localhost HTTP API
+	if acc != nil && acc.Server != "" {
+		// Extract host from tunnel address (host:9443 → host)
+		host := acc.Server
+		if i := strings.LastIndex(host, ":"); i != -1 {
+			host = host[:i]
+		}
+		// Try HTTPS first (auto-tls on :443), fallback to HTTP :8080
+		client := &http.Client{Timeout: 2 * time.Second}
+		if resp, err := client.Get("https://" + host + "/healthz"); err == nil {
+			resp.Body.Close()
+			return "https://" + host
+		}
+		if resp, err := client.Get("http://" + host + ":8080/healthz"); err == nil {
+			resp.Body.Close()
+			return "http://" + host + ":8080"
+		}
+		// Default to HTTPS
+		return "https://" + host
+	}
 	return "http://localhost:8080"
 }
 

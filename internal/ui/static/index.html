@@ -66,6 +66,11 @@ a{color:var(--cyan);text-decoration:none}a:hover{color:var(--fg)}
 .c-s{font-family:var(--mono);font-size:12px;font-weight:600}.s2{color:var(--green)}.s4{color:var(--yellow)}.s5{color:var(--red)}.sp{color:var(--comment)}
 .c-d{font-family:var(--mono);font-size:11px;color:var(--comment)}
 .step{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(189,147,249,.1);color:var(--purple)}
+.step-replicate{background:rgba(80,250,123,.1);color:var(--green)}
+.step-fal{background:rgba(139,233,253,.1);color:var(--cyan)}
+.step-runpod{background:rgba(189,147,249,.1);color:var(--purple)}
+.step-openai{background:rgba(241,250,140,.1);color:var(--yellow)}
+.step-modal{background:rgba(255,121,198,.1);color:var(--pink)}
 
 /* Trace (Jaeger-style) */
 .tr-card{background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin:0 18px 10px;overflow:hidden;animation:fadeIn .2s ease}
@@ -213,7 +218,7 @@ ${reqs.map(r=>html`<div key=${r.id} class="rr ${sel&&sel.id===r.id?'sel':''}" on
 <span>${ST(r)}</span>
 <span class=c-d>${r.duration_ms?r.duration_ms+'ms':'—'}</span>
 <span class=c-d>${r.req_size?fS(r.req_size):''}</span>
-<span>${r.step_name?html`<span class=step>${r.step_name}</span>`:''}</span>
+<span>${r.step_name?html`<span class="step ${stepCls(r.step_name)}">${r.step_name}</span>`:''}</span>
 </div>`)}</div>`}
 
 // ── Pipeline Traces ──────────────────────────────────────────────────
@@ -270,6 +275,7 @@ function J(s){try{return JSON.parse(s||'{}')}catch{return{}}}
 function D(d){if(!d)return null;if(typeof d==='string')return d;try{return atob(d)}catch{return String(d)}}
 function F(s){if(!s)return'';try{return JSON.stringify(JSON.parse(s),null,2)}catch{return s}}
 function fS(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'K';return(b/1048576).toFixed(1)+'M'}
+function stepCls(s){if(!s)return'';const l=s.toLowerCase();for(const p of['replicate','fal','runpod','openai','modal']){if(l.includes(p))return'step-'+p}return''}
 
 render(html`<${App}/>`,document.getElementById('app'));
 </script>

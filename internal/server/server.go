@@ -409,12 +409,12 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request, subdomain
 
 	headersJSON, _ := json.Marshal(flattenHeaders(r.Header))
 
-	// Pipeline tracing: from headers or auto-matched rules
+	// Pipeline tracing: from headers or auto-matched rules or auto-detected provider
 	traceID := r.Header.Get("X-Pipepie-Trace-ID")
 	pipelineID := r.Header.Get("X-Pipepie-Pipeline")
 	stepName := r.Header.Get("X-Pipepie-Step")
 
-	// Auto-match pipeline rules by path prefix
+	// 1. Auto-match pipeline rules by path prefix
 	if pipelineID == "" {
 		for _, rule := range s.cfg.PipelineRules {
 			if strings.HasPrefix(r.URL.Path, rule.PathPrefix) {
@@ -425,15 +425,33 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request, subdomain
 		}
 	}
 
-	// Auto-correlate: if this is a pipeline request without trace_id,
-	// assign one automatically (correlated with recent requests)
+	// 2. Auto-detect AI provider from payload (Replicate, fal.ai, RunPod, etc.)
+	if pipelineID == "" {
+		if match := DetectProvider(r.Header, body, r.URL.Path); match != nil {
+			pipelineID = match.Provider
+			stepName = match.StepName
+			if match.Model != "" {
+				stepName = match.StepName + ":" + match.Model
+			}
+			// Use job ID as trace correlation — same job = same trace
+			if match.JobID != "" && traceID == "" {
+				traceID = match.Provider + ":" + match.JobID
+			}
+			s.log.Debug("auto-detected provider",
+				"provider", match.Provider,
+				"job", match.JobID,
+				"status", match.Status,
+			)
+		}
+	}
+
+	// 3. Auto-correlate: group pipeline requests within time window
 	if pipelineID != "" && traceID == "" {
 		traceID = s.pipeline.Correlate(tunnel.ID, pipelineID)
 	}
 
-	// Auto-detect step name from path if not set
+	// 4. Auto step name from path if still not set
 	if stepName == "" && pipelineID != "" {
-		// Use last path segment as step name: /replicate/callback → callback
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(parts) > 0 {
 			stepName = parts[len(parts)-1]
