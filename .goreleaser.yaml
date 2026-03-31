@@ -1,0 +1,49 @@
+version: 2
+
+project_name: pipepie
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: pie
+    binary: pie
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/Seinarukiro2/pipepie/cmd.Version={{.Version}}
+
+archives:
+  - id: default
+    name_template: "pie_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+
+brews:
+  - repository:
+      owner: Seinarukiro2
+      name: homebrew-tap
+    name: pipepie
+    homepage: "https://github.com/Seinarukiro2/pipepie"
+    description: "Self-hosted encrypted tunnel to expose localhost to the internet"
+    license: "AGPL-3.0"
+    install: |
+      bin.install "pie"
+    test: |
+      system "#{bin}/pie", "version"
