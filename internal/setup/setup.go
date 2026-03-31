@@ -253,6 +253,7 @@ func Run(configPath string) error {
 					Title("TLS Certificate").
 					Description("How to handle HTTPS").
 					Options(
+						huh.NewOption("Auto TLS — Let's Encrypt per subdomain (recommended)", "auto"),
 						huh.NewOption("Cloudflare DNS — automatic wildcard cert", "cloudflare"),
 						huh.NewOption("Manual — provide cert/key files", "manual"),
 						huh.NewOption("No TLS — HTTP only", "none"),
@@ -262,6 +263,10 @@ func Run(configPath string) error {
 		).WithTheme(draculaTheme()).Run()
 
 		switch tlsChoice {
+		case "auto":
+			tlsCfg = TLSConfig{Mode: "auto"}
+			fmt.Println(successStyle.Render("  ✓") + " Auto TLS enabled (Let's Encrypt)")
+			fmt.Println(dimStyle.Render("  Certificates issued automatically on first request."))
 		case "cloudflare":
 			tlsCfg = wizardCloudflare(domain)
 		case "manual":

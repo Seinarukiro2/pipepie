@@ -100,6 +100,8 @@ func loadServerConfig(path string, cfg *server.Config) error {
 		cfg.Addr = sc.HTTPAddr
 	}
 	switch sc.TLS.Mode {
+	case "auto":
+		cfg.AutoTLS = true
 	case "cloudflare":
 		cfg.AutoTLS = true
 		cfg.TLSCacheDir = sc.TLS.CacheDir
