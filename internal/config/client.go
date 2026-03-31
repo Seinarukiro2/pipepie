@@ -16,11 +16,28 @@ type ClientConfig struct {
 
 // Account is a single server connection.
 type Account struct {
-	Type      string `yaml:"type"`                // "self-hosted" or "managed"
-	Server    string `yaml:"server"`              // e.g. "tunnel.mysite.com:9443"
-	Key       string `yaml:"key"`                 // server public key (hex)
-	Subdomain string `yaml:"subdomain,omitempty"` // default subdomain
-	Plan      string `yaml:"plan,omitempty"`      // managed only: "free", "pro"
+	Type      string            `yaml:"type"`                // "self-hosted" or "managed"
+	Server    string            `yaml:"server"`              // e.g. "tunnel.mysite.com:9443"
+	Key       string            `yaml:"key"`                 // server public key (hex)
+	Subdomain string            `yaml:"subdomain,omitempty"` // default subdomain
+	Plan      string            `yaml:"plan,omitempty"`      // managed only: "free", "pro"
+	Tunnels   map[string]string `yaml:"tunnels,omitempty"`   // port → subdomain cache
+}
+
+// GetTunnelName returns cached subdomain for a port, or empty.
+func (a *Account) GetTunnelName(port string) string {
+	if a.Tunnels == nil {
+		return ""
+	}
+	return a.Tunnels[port]
+}
+
+// SetTunnelName saves subdomain for a port.
+func (a *Account) SetTunnelName(port, subdomain string) {
+	if a.Tunnels == nil {
+		a.Tunnels = make(map[string]string)
+	}
+	a.Tunnels[port] = subdomain
 }
 
 // ClientConfigPath returns ~/.pipepie/config.yaml

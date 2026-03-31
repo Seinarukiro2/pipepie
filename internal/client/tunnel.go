@@ -42,6 +42,11 @@ func New(cfg Config) *Client {
 	}
 }
 
+// AssignedSubdomain returns the subdomain assigned by the server (after connect).
+func (c *Client) AssignedSubdomain() string {
+	return c.cfg.Subdomain
+}
+
 // Run connects and forwards webhooks. Auto-reconnects on failure.
 func (c *Client) Run(ctx context.Context) error {
 	attempt := 0

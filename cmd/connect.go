@@ -47,39 +47,6 @@ Uses saved config from 'pie login' — or override with flags.
 		forward := resolveFlag(cmd, "forward", "", "http://localhost:3000")
 		tcpForward := mustStr(cmd, "tcp")
 
-		// Interactive subdomain picker if not set
-		if subdomain == "" && tcpForward == "" {
-			var subChoice string
-			huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Subdomain").
-						Options(
-							huh.NewOption("Choose my own (stable URL)", "custom"),
-							huh.NewOption("Random (changes on reconnect)", "random"),
-						).
-						Value(&subChoice),
-				),
-			).WithTheme(huh.ThemeDracula()).Run()
-
-			if subChoice == "custom" {
-				huh.NewForm(
-					huh.NewGroup(
-						huh.NewInput().
-							Title("Subdomain name").
-							Placeholder("my-app").
-							Value(&subdomain),
-					),
-				).WithTheme(huh.ThemeDracula()).Run()
-				subdomain = strings.TrimSpace(subdomain)
-				// Save to config for next time
-				if active != nil && subdomain != "" {
-					active.Subdomain = subdomain
-					config.SaveClient(cfg)
-				}
-			}
-		}
-
 		// Validate key
 		if keyHex == "" {
 			client.NotLoggedIn()
@@ -103,6 +70,44 @@ Uses saved config from 'pie login' — or override with flags.
 			}
 		}
 
+		// Resolve subdomain: --name flag > port cache > interactive
+		port := extractPort(forward)
+		if subdomain == "" && active != nil && port != "" {
+			subdomain = active.GetTunnelName(port)
+		}
+		if subdomain == "" && tcpForward == "" {
+			var subChoice string
+			huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Subdomain").
+						Options(
+							huh.NewOption("Choose my own (stable URL)", "custom"),
+							huh.NewOption("Random (auto-generated)", "random"),
+						).
+						Value(&subChoice),
+				),
+			).WithTheme(huh.ThemeDracula()).Run()
+
+			if subChoice == "custom" {
+				huh.NewForm(
+					huh.NewGroup(
+						huh.NewInput().
+							Title("Subdomain name").
+							Placeholder("my-app").
+							Value(&subdomain),
+					),
+				).WithTheme(huh.ThemeDracula()).Run()
+				subdomain = strings.TrimSpace(subdomain)
+			}
+		}
+
+		// If --name was explicitly set, override cache
+		if cmd.Flags().Changed("name") && active != nil && port != "" {
+			active.SetTunnelName(port, subdomain)
+			config.SaveClient(cfg)
+		}
+
 		auth := mustStr(cmd, "auth")
 
 		clientCfg := client.Config{
@@ -117,9 +122,31 @@ Uses saved config from 'pie login' — or override with flags.
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
 
-		return client.New(clientCfg).Run(ctx)
+		c := client.New(clientCfg)
+		err = c.Run(ctx)
+
+		// Save assigned subdomain to cache for next time
+		if active != nil && port != "" && c.AssignedSubdomain() != "" {
+			active.SetTunnelName(port, c.AssignedSubdomain())
+			config.SaveClient(cfg)
+		}
+
+		return err
 	},
 	Args: cobra.MaximumNArgs(1),
+}
+
+func extractPort(forward string) string {
+	// "http://localhost:3000" → "3000"
+	if i := strings.LastIndex(forward, ":"); i != -1 {
+		p := forward[i+1:]
+		// Strip path if any
+		if j := strings.Index(p, "/"); j != -1 {
+			p = p[:j]
+		}
+		return p
+	}
+	return ""
 }
 
 // resolveFlag returns: explicit flag > saved config > default
