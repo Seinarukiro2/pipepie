@@ -62,7 +62,7 @@ func (f *Forwarder) Forward(req *pb.HttpRequest, body []byte) (*pb.HttpResponse,
 			Headers: map[string]string{
 				"Content-Type": "text/html; charset=utf-8",
 			},
-			Body: []byte(errorPage(f.target, err)),
+			Body: []byte(errorPage(f.target)),
 		}, nil
 	}
 	defer resp.Body.Close()
@@ -85,48 +85,49 @@ func (f *Forwarder) Forward(req *pb.HttpRequest, body []byte) (*pb.HttpResponse,
 	}, nil
 }
 
-func errorPage(target string, err error) string {
+func errorPage(target string) string {
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>pipepie — tunnel active</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0f172a; color: #e2e8f0; font-family: -apple-system, system-ui, sans-serif;
-    display: flex; align-items: center; justify-content: center; min-height: 100vh;
-  }
-  .card {
-    max-width: 480px; text-align: center; padding: 48px 32px;
-  }
-  .logo { font-size: 32px; font-weight: 700; color: #bd93f9; margin-bottom: 8px; }
-  .subtitle { color: #6272a4; font-size: 14px; margin-bottom: 32px; }
-  .status {
-    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
-    padding: 24px; margin-bottom: 24px;
-  }
-  .status h2 { color: #f1fa8c; font-size: 18px; margin-bottom: 8px; }
-  .status p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
-  .target {
-    font-family: 'SF Mono', monospace; color: #8be9fd;
-    background: #0f172a; padding: 2px 8px; border-radius: 4px;
-  }
-  .hint { color: #6272a4; font-size: 13px; }
-  .hint code {
-    background: #1e293b; padding: 2px 8px; border-radius: 4px;
-    color: #50fa7b; font-family: 'SF Mono', monospace;
-  }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#282a36;color:#f8f8f2;font-family:'VT323',monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:10}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 50%%,rgba(0,0,0,.4));pointer-events:none;z-index:10}
+@keyframes flicker{0%%,100%%{opacity:1}92%%{opacity:1}93%%{opacity:.8}94%%{opacity:1}}
+@keyframes blink{0%%,100%%{opacity:1}50%%{opacity:0}}
+@keyframes glow{0%%,100%%{text-shadow:0 0 10px rgba(189,147,249,.3)}50%%{text-shadow:0 0 20px rgba(189,147,249,.6),0 0 40px rgba(189,147,249,.2)}}
+.screen{animation:flicker 4s infinite;max-width:600px;padding:40px}
+.pie{color:#bd93f9;font-size:20px;line-height:1.1;margin-bottom:16px;white-space:pre}
+.title{font-size:48px;color:#bd93f9;animation:glow 3s ease-in-out infinite;margin-bottom:4px}
+.sub{color:#6272a4;font-size:24px;margin-bottom:32px}
+.box{border:1px solid #44475a;padding:20px;margin-bottom:20px;position:relative}
+.box::before{content:'[ STATUS ]';position:absolute;top:-10px;left:12px;background:#282a36;padding:0 8px;color:#6272a4;font-size:18px}
+.line{font-size:22px;margin:6px 0}
+.ok{color:#50fa7b}.warn{color:#f1fa8c}.target{color:#8be9fd}.pink{color:#ff79c6}
+.cursor{display:inline-block;animation:blink 1s step-end infinite;color:#50fa7b}
+.prompt{color:#6272a4;font-size:20px;margin-top:24px}
+.prompt span{color:#50fa7b}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">pipepie</div>
-  <div class="subtitle">encrypted tunnel</div>
-  <div class="status">
-    <h2>Tunnel is active</h2>
-    <p>But nothing is running on <span class="target">%s</span></p>
-  </div>
-  <p class="hint">Start your local server and refresh this page.</p>
+<div class="screen">
+<pre class="pie">    ╱◣
+   ╱  ◣
+  ╱ ◈  ◣
+ ╱──────◣
+ ‾‾‾‾‾‾‾‾</pre>
+<div class="title">pipepie</div>
+<div class="sub">encrypted tunnel</div>
+<div class="box">
+<div class="line ok">► tunnel is active</div>
+<div class="line warn">► no service detected on <span class="target">%s</span></div>
+<div class="line pink">► start your server and refresh</div>
+</div>
+<div class="prompt">$ pie connect 3000 <span class="cursor">█</span></div>
 </div>
 </body>
 </html>`, target)
