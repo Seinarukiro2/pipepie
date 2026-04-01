@@ -1,102 +1,118 @@
-# pie
+# Pipepie
 
-Self-hosted, encrypted tunnel to expose localhost to the internet. Built for webhook development, Telegram mini-apps, and async AI pipelines.
+Self-hosted, encrypted tunnel for webhooks, AI pipelines, and local development. Open-source ngrok alternative with end-to-end encryption.
 
-One command to get a public HTTPS URL for your local server:
+![pipepie connect](demo/hero.gif)
 
-![pie connect](demo/hero.gif)
+```bash
+pie connect 3000
+# ✓ https://my-app.tunnel.dev → localhost:3000
+```
 
-## Why pie?
+## Why Pipepie?
 
-- **End-to-end encrypted** — Noise NK protocol. Your server never sees plaintext data.
-- **Self-hosted** — run on your own VPS. No vendor lock-in, no third-party traffic inspection.
-- **Fast** — 577 req/s parallel throughput, 2ms latency overhead. Protobuf + zstd + yamux.
-- **Pipeline debugger** — trace async AI webhook chains (Replicate, fal.ai, RunPod) with timeline visualization.
-- **Web dashboard** — inspect requests, replay webhooks, view pipeline traces.
+- **End-to-end encrypted** — Noise NK protocol. The relay server never sees your data.
+- **AI-first** — auto-detects Replicate, fal.ai, RunPod, Modal, OpenAI webhooks. Pipeline tracing with timeline visualization.
+- **Self-hosted** — your server, your domain, your data. No vendor lock-in.
+- **Fast** — 577 req/s parallel, 2ms overhead. Protobuf + zstd + yamux.
+- **Beautiful CLI** — Dracula theme, interactive forms, 17 commands.
 - **Zero-config start** — `pie setup` on server, `pie login` on client, done.
+
+## Install
+
+```bash
+# Script
+curl -sSL https://raw.githubusercontent.com/pipepie/pipepie/main/install.sh | sh
+
+# Or build from source
+git clone https://github.com/pipepie/pipepie && cd pipepie && make build
+```
 
 ## Quick Start
 
 ### Server (your VPS, one time)
 
 ```bash
-# Install
-curl -sSL https://pipepie.dev/install | sh
-
-# Interactive setup — handles DNS, firewall, TLS, everything
 pie setup
 ```
 
-`pie setup` walks you through domain configuration, DNS verification, TLS certificates (Cloudflare auto or manual), firewall rules, nginx detection, systemd service creation, and server key generation.
+Interactive wizard handles DNS, firewall, TLS (Let's Encrypt auto or Cloudflare), nginx detection, systemd service — everything.
 
 ### Client (your dev machine)
 
 ```bash
-# Save the server connection (key from pie setup output)
+# Save server connection (key from pie setup)
 pie login --server tunnel.mysite.com:9443 --key a7f3bc21...
 
 # Tunnel any local port
 pie connect 3000
 ```
 
-That's it. Your local server is now reachable at `https://abc123.tunnel.mysite.com`.
+## AI Tool Presets
+
+```bash
+pie connect --ollama       # Ollama (port 11434, auth enabled)
+pie connect --comfyui      # ComfyUI (port 8188, WebSocket)
+pie connect --n8n          # n8n workflows (port 5678)
+pie connect --tma          # Telegram Mini App (port 5173)
+```
 
 ## Features
 
 ### Tunneling
 
 ```bash
-# HTTP tunnel
-pie connect 3000
-
-# Named subdomain
-pie connect 3000 --name my-app
-
-# TCP tunnel (databases, gRPC)
-pie connect --tcp 5432
-
-# Protect with password
-pie connect 3000 --auth secretpass
-
-# Multiple tunnels from config
-pie up
+pie connect 3000                    # HTTP tunnel
+pie connect 3000 --name my-app     # Stable subdomain
+pie connect --tcp 5432              # TCP (databases, gRPC)
+pie connect 3000 --auth secret      # Password-protected URL
+pie up                              # Multi-tunnel from pipepie.yaml
 ```
 
-### Inspection
+### Webhook Inspection
 
-![pie logs](demo/logs.gif)
+![pipepie logs](demo/logs.gif)
 
 ```bash
-# Web dashboard (opens browser, auto-authenticated)
-pie dashboard
-
-# Stream requests in terminal with bodies
-pie logs my-app --follow --body
-
-# Show tunnel status
-pie status
+pie logs my-app --follow --body     # Stream with request/response bodies
+pie inspect <request-id>            # Full headers, body, metadata
+pie replay <request-id>             # Re-send a captured webhook
+pie dashboard                       # Open web UI in browser
 ```
 
-![pie status & account & doctor](demo/dashboard.gif)
+### AI Pipeline Tracing
 
-### Pipeline Tracing
+Pipepie auto-detects webhooks from AI providers — no configuration needed:
 
-Trace async AI webhook chains. Send webhooks with trace headers:
+| Provider | Detection | What's extracted |
+|----------|-----------|-----------------|
+| Replicate | `webhook-id` header + payload | Job ID, status, predict_time |
+| fal.ai | `x-fal-signature` header | Request ID, status |
+| RunPod | UPPERCASE status in payload | Run ID, execution time |
+| Modal | `call_id` in payload | Call ID, status |
+| OpenAI | `batch_` prefix in ID | Batch ID, model |
+| MCP | JSON-RPC 2.0 `method` field | Tool name, call ID |
+
+Webhooks from the same pipeline are auto-correlated into traces:
 
 ```bash
-curl -X POST https://my-app.tunnel.mysite.com/replicate \
-  -H "X-Pipepie-Trace-ID: trace-001" \
+pie traces my-app                   # Terminal timeline view
+pie dashboard                       # Web UI with Jaeger-style bars
+```
+
+Or use headers for manual correlation:
+
+```bash
+curl -X POST https://my-app.tunnel.dev/webhook \
   -H "X-Pipepie-Pipeline: image-gen" \
-  -H "X-Pipepie-Step: generate"
+  -H "X-Pipepie-Step: generate" \
+  -H "X-Pipepie-Trace-ID: trace-001"
 ```
-
-View the full pipeline timeline in the web dashboard — which step ran, how long it took, what failed.
 
 ### Multi-Service Config
 
-Create `pipepie.yaml` in your project:
-
 ```yaml
+# pipepie.yaml
 server: tunnel.mysite.com:9443
 key: a7f3bc21...
 
@@ -126,16 +142,24 @@ pie up
 ### Multi-Account
 
 ```bash
-# Add multiple servers
 pie login --server work.example.com:9443 --key abc...
 pie login --server personal.example.com:9443 --key def...
 
-# Switch between them
-pie account
-pie account use work.example.com
+pie account                         # List all, see active
+pie account use work.example.com    # Switch
+pie logout personal.example.com     # Remove
+```
 
-# Remove
-pie logout personal.example.com
+### Server Management
+
+![pipepie status](demo/dashboard.gif)
+
+```bash
+pie setup                           # Interactive setup wizard
+pie server --config pipepie.yaml    # Start server
+pie doctor --config pipepie.yaml    # Diagnose configuration
+pie status                          # Tunnel overview
+pie status --json                   # JSON output for scripts
 ```
 
 ## Architecture
@@ -155,68 +179,39 @@ Client (pie connect)                    Server (pie server)
   localhost:3000              https://sub.domain.com
 ```
 
-- **Noise NK** — client authenticates server by public key. Know the key = have access.
-- **yamux** — multiplexed streams over one TCP connection. No head-of-line blocking.
-- **Protobuf** — binary serialization, ~10x smaller than JSON.
-- **zstd** — bodies >1KB auto-compressed.
-- **SQLite WAL** — request history, zero config.
+**Noise NK** — server authenticated by public key. Know the key = have access.
+**yamux** — multiplexed streams, no head-of-line blocking.
+**Protobuf** — binary wire format, ~10x smaller than JSON.
+**zstd** — bodies >1KB auto-compressed.
+**SSE/streaming** — pass-through without buffering (Vercel AI SDK, Ollama compatible).
 
 ## CLI Reference
 
 | Command | Description |
 |---------|-------------|
-| `pie setup` | Interactive server setup wizard |
-| `pie server` | Start the relay server |
-| `pie doctor` | Diagnose server configuration |
-| `pie login` | Add a server connection |
 | `pie connect [port]` | Create a tunnel |
 | `pie connect --tcp [port]` | TCP tunnel |
+| `pie connect --ollama` | Ollama preset |
+| `pie connect --comfyui` | ComfyUI preset |
+| `pie connect --n8n` | n8n preset |
+| `pie connect --tma` | Telegram Mini App preset |
+| `pie login` | Add server connection |
+| `pie logout` | Remove account |
+| `pie account` | List & switch accounts |
 | `pie dashboard` | Open web UI in browser |
 | `pie status` | Show tunnels and activity |
-| `pie logs [name]` | Stream recent requests |
+| `pie logs [name]` | Stream requests |
+| `pie inspect [id]` | Full request details |
+| `pie replay [id]` | Replay a webhook |
+| `pie traces [name]` | Pipeline trace timelines |
 | `pie up` | Multi-tunnel from pipepie.yaml |
-| `pie account` | List and switch accounts |
-| `pie logout [name]` | Remove an account |
-
-## Server Setup Options
-
-### TLS
-
-```bash
-# Automatic wildcard cert via Cloudflare DNS
-pie server --auto-tls --config pipepie.yaml
-
-# Manual certificate
-pie server --tls-cert /path/to/cert.pem --tls-key /path/to/key.pem
-
-# Behind nginx (pie setup auto-configures)
-pie server --addr :8080
-```
-
-### Diagnostics
-
-```bash
-pie doctor --config pipepie.yaml
-
-#   Config
-#   ✓ pipepie.yaml valid
-#   ✓ Domain: tunnel.mysite.com
-#
-#   Network
-#   ✓ Port 443 available
-#   ✓ Port 9443 available
-#
-#   DNS
-#   ✓ tunnel.mysite.com → 203.0.113.5
-#   ✓ *.tunnel.mysite.com → 203.0.113.5
-#
-#   TLS
-#   ✓ Certificate valid, expires in 89 days
-```
+| `pie setup` | Server setup wizard |
+| `pie server` | Start relay server |
+| `pie doctor` | Diagnose server config |
+| `pie update` | Self-update to latest |
+| `pie version` | Version + update check |
 
 ## Performance
-
-Benchmarked on a single machine (localhost tunnel):
 
 | Metric | Result |
 |--------|--------|
@@ -227,31 +222,22 @@ Benchmarked on a single machine (localhost tunnel):
 
 ## vs ngrok
 
-| | pie | ngrok |
+| | Pipepie | ngrok |
 |---|---|---|
 | Self-hosted | ✅ | ❌ |
 | Open source | ✅ | ❌ |
 | E2E encryption | ✅ Noise NK | ❌ TLS termination |
-| Pipeline tracing | ✅ | ❌ |
+| AI pipeline tracing | ✅ | ❌ |
+| Auto-detect providers | ✅ 6 providers | ❌ |
 | Request inspection | ✅ | ✅ (paid) |
 | Replay | ✅ | ✅ (paid) |
 | TCP tunnels | ✅ | ✅ |
-| Custom domains | ✅ | ✅ (paid) |
 | WebSocket | ✅ | ✅ |
+| SSE streaming | ✅ | ✅ |
+| Custom domains | ✅ | ✅ (paid) |
 | Setup wizard | ✅ | N/A |
+| MCP detection | ✅ | ❌ |
 | Price | Free | $8-39/mo |
-
-## Build from Source
-
-```bash
-git clone https://github.com/pipepie/pipepie
-cd pipepie
-make build    # → ./pie
-make test     # run tests
-make release  # cross-compile all platforms
-```
-
-Requires Go 1.21+.
 
 ## License
 
