@@ -21,6 +21,9 @@ pie connect 3000
 ## Install
 
 ```bash
+# Homebrew
+brew install pipepie/tap/pipepie
+
 # Script
 curl -sSL https://raw.githubusercontent.com/pipepie/pipepie/main/install.sh | sh
 
