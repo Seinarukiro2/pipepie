@@ -5,8 +5,6 @@
 **Self-hosted, encrypted tunnel for webhooks, AI pipelines, and local development.**
 **End-to-end Noise encryption, pipeline tracing, web dashboard.**
 
-<a href="https://glama.ai/mcp/servers/@pipepie/pipepie"><img width="380" height="200" src="https://glama.ai/mcp/servers/@pipepie/pipepie/badge" alt="pipepie MCP server" /></a>
-
 </div>
 
 ![pipepie connect](demo/hero.gif)
@@ -197,6 +195,8 @@ Client (pie connect)                    Server (pie server)
 **SSE/streaming** — pass-through without buffering (Vercel AI SDK, Ollama compatible).
 
 ## MCP Server (Claude, Cursor, AI tools)
+
+[![pipepie MCP server](https://glama.ai/mcp/servers/@pipepie/pipepie/badge)](https://glama.ai/mcp/servers/@pipepie/pipepie)
 
 Pipepie includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) server. Your AI tools can inspect webhooks, replay requests, manage tunnels, and debug pipelines — directly from the chat.
 
