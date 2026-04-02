@@ -1,6 +1,11 @@
+<div align="center">
+
 # Pipepie
 
-Self-hosted, encrypted tunnel for webhooks, AI pipelines, and local development. End-to-end Noise encryption, pipeline tracing, web dashboard.
+**Self-hosted, encrypted tunnel for webhooks, AI pipelines, and local development.**
+**End-to-end Noise encryption, pipeline tracing, web dashboard.**
+
+</div>
 
 ![pipepie connect](demo/hero.gif)
 
