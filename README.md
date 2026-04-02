@@ -5,6 +5,8 @@
 **Self-hosted, encrypted tunnel for webhooks, AI pipelines, and local development.**
 **End-to-end Noise encryption, pipeline tracing, web dashboard.**
 
+<a href="https://glama.ai/mcp/servers/@pipepie/pipepie"><img width="380" height="200" src="https://glama.ai/mcp/servers/@pipepie/pipepie/badge" alt="pipepie MCP server" /></a>
+
 </div>
 
 ![pipepie connect](demo/hero.gif)
