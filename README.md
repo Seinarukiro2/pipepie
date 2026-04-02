@@ -20,6 +20,7 @@ pie connect 3000
 - **AI-first** — auto-detects Replicate, fal.ai, RunPod, Modal, OpenAI webhooks. Pipeline tracing with timeline visualization.
 - **Self-hosted** — your server, your domain, your data. No vendor lock-in.
 - **Fast** — 577 req/s parallel, 2ms overhead. Protobuf + zstd + yamux.
+- **MCP server built-in** — `pie mcp` gives Claude, Cursor, and AI tools direct access to tunnels, requests, and pipeline traces.
 - **Beautiful CLI** — Dracula theme, interactive forms, 17 commands.
 - **Zero-config start** — `pie setup` on server, `pie login` on client, done.
 
@@ -193,6 +194,51 @@ Client (pie connect)                    Server (pie server)
 **zstd** — bodies >1KB auto-compressed.
 **SSE/streaming** — pass-through without buffering (Vercel AI SDK, Ollama compatible).
 
+## MCP Server (Claude, Cursor, AI tools)
+
+Pipepie includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) server. Your AI tools can inspect webhooks, replay requests, manage tunnels, and debug pipelines — directly from the chat.
+
+```bash
+# Claude Code (one command)
+claude mcp add --transport stdio pipepie -- pie mcp
+```
+
+<details>
+<summary>Claude Desktop / Cursor config</summary>
+
+Add to `claude_desktop_config.json` or Cursor MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "pipepie": {
+      "command": "pie",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+**13 tools available:**
+
+| Tool | What it does |
+|------|-------------|
+| `overview` | Dashboard with all tunnels, stats, success rates |
+| `list_tunnels` | All registered tunnels with online/offline status |
+| `tunnel_status` | Check if a specific tunnel is online |
+| `connect` | Start a tunnel (e.g. port 3000 → public URL) |
+| `disconnect` | Stop a running tunnel |
+| `active_tunnels` | List tunnels running in this session |
+| `list_requests` | Recent webhook requests for a tunnel |
+| `inspect_request` | Full request details: headers, body, response |
+| `replay_request` | Re-send a captured webhook |
+| `pipeline_traces` | AI pipeline execution traces |
+| `trace_timeline` | Step-by-step timeline for a trace |
+| `create_tunnel` | Register a new subdomain |
+| `delete_tunnel` | Remove a tunnel and its data |
+
 ## CLI Reference
 
 | Command | Description |
@@ -216,6 +262,7 @@ Client (pie connect)                    Server (pie server)
 | `pie setup` | Server setup wizard |
 | `pie server` | Start relay server |
 | `pie doctor` | Diagnose server config |
+| `pie mcp` | Start MCP server for AI tools |
 | `pie update` | Self-update to latest |
 | `pie version` | Version + update check |
 
